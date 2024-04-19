@@ -8,70 +8,34 @@ B_q4 = 18
 MOTOR_A_PIN_q4 = 16
 MOTOR_B_PIN_q4 = 12
 
-# Encoder resolution
+# Encoder resolution and motor control parameters
 ppr_chico = 2441
-
-# PID control parameters
-Kc_q4 = 2
-Taui_q4 = 0.012
-Taud_q4 = 0.4
-T = 0.01
-limit_Mk = 100
-pulse_range = 100
+PWM_FREQ = 1000  # 1000 Hz PWM frequency
+PWM_DUTY_CYCLE = 50  # Duty cycle percentage
 
 # GPIO setup using lgpio
 lg = lgpio.gpiochip_open(0)
+lgpio.gpio_claim_output(lg, PWM_q4)
 lgpio.gpio_claim_input(lg, A_q4)
 lgpio.gpio_claim_input(lg, B_q4)
 lgpio.gpio_claim_output(lg, MOTOR_A_PIN_q4)
 lgpio.gpio_claim_output(lg, MOTOR_B_PIN_q4)
-lgpio.gpio_claim_output(lg, PWM_q4)
 
-# PWM setup
-pwm_handle = lgpio.pwm_open(lg, PWM_q4, 1000)  # Assuming 1000 Hz PWM frequency
-lgpio.pwm_set_range(lg, pwm_handle, pulse_range)
+# Function to start PWM on a pin
+def start_pwm(pin, frequency, duty_cycle_percentage):
+    # Convert duty cycle percentage to duty cycle units
+    duty_cycle_units = int((duty_cycle_percentage / 100.0) * (1 << 16))  # Duty cycle as a fraction of (2^16 - 1)
+    lgpio.tx_pwm(lg, pin, frequency, duty_cycle_units)
 
-# PID control variables
-pulsos_q4 = 0
-posicion_q4 = 0
-Mk1_q4 = 0
-E1_q4 = 0
-E2_q4 = 0
+# Function to stop PWM
+def stop_pwm(pin):
+    lgpio.tx_pwm(lg, pin, 0, 0)
 
-def contar_q4(gpio, level, tick):
-    global pulsos_q4, posicion_q4
-    if lgpio.gpio_read(lg, B_q4):
-        pulsos_q4 -= 1
-    else:
-        pulsos_q4 += 1
-
-    pulsos_q4 %= ppr_chico  # Wrap around the pulse count
-
-    posicion_q4 = (pulsos_q4 * 360) // ppr_chico  # Convert pulses to angle
-
-# Callbacks for encoder edges
-cb1 = lgpio.callback(lg, A_q4, lgpio.EITHER_EDGE, contar_q4)
-cb2 = lgpio.callback(lg, B_q4, lgpio.EITHER_EDGE, contar_q4)
-
-def PID_q4():
-    global E_q4, Mk, Mk1_q4, E1_q4, E2_q4
-    E_q4 = q4 - posicion_q4  # Calculate error
-    Mk = Mk1_q4 + Kc_q4 * (E_q4 + (E1_q4 - E2_q4) * Taud_q4 / T + E1_q4 * T / Taui_q4)
-    Mk = max(0, min(Mk, limit_Mk))  # Constrain Mk within 0 to limit_Mk
-
-    pulse_width = int((Mk - 0) * (255 - 40) / (limit_Mk - 0) + 40)
-    lgpio.pwm_set_dutycycle(lg, pwm_handle, pulse_width)
-
-    Mk1_q4 = Mk
-    E2_q4 = E1_q4
-    E1_q4 = E_q4
-
-# Main control loop
-last_time = time.time()
-while True:
-    q4 = 30  # Target angle
-    
-    if (time.time() - last_time) > T:
-        PID_q4()
-        print("PID updated")
-        last_time = time.time()
+try:
+    # Start PWM
+    start_pwm(PWM_q4, PWM_FREQ, PWM_DUTY_CYCLE)
+    time.sleep(10)  # Run PWM for 10 seconds
+finally:
+    # Stop PWM and clean up
+    stop_pwm(PWM_q4)
+    lgpio.gpiochip_close(lg)
