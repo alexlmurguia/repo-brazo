@@ -1,11 +1,10 @@
 import pigpio
 import time
-import math
 
-# Definición de pines (BCM)
+# Definición de pines usando la numeración BCM
 PWM_q4 = 6
-A_q4 = 10
-B_q4 = 9
+A_q4 = 10  # Cambié esto de acuerdo a los pines de Raspberry Pi GPIO10
+B_q4 = 9   # Cambié esto de acuerdo a los pines de Raspberry Pi GPIO9
 MOTOR_A_PIN_q4 = 20
 MOTOR_B_PIN_q4 = 21
 
@@ -26,8 +25,7 @@ E1_q4 = 0.0
 E2_q4 = 0.0
 q4 = 90  # Posición deseada en grados
 
-# Instancia de pigpio
-pi = pigpio.pi()
+pi = pigpio.pi()  # Inicializar la librería pigpio
 
 # Configuración de pines
 pi.set_mode(PWM_q4, pigpio.OUTPUT)
@@ -39,20 +37,22 @@ pi.set_mode(B_q4, pigpio.INPUT)
 # Interrupción para contar pulsos del encoder
 def contar_q4(gpio, level, tick):
     global pulsos_q4, posicion_q4
-    if pi.read(B_q4) == 1:
-        pulsos_q4 -= 1
-    else:
-        pulsos_q4 += 1
+    if level == 0:  # Verificar que la interrupción es por nivel bajo
+        if pi.read(B_q4) == 1:
+            pulsos_q4 -= 1
+        else:
+            pulsos_q4 += 1
 
-    if pulsos_q4 <= -ppr_chico or pulsos_q4 >= ppr_chico:
-        pulsos_q4 = 0
+        if pulsos_q4 <= -ppr_chico or pulsos_q4 >= ppr_chico:
+            pulsos_q4 = 0
 
-    # Reajuste dentro del rango
-    pulsos_q4 %= ppr_chico
+        # Reajuste dentro del rango
+        pulsos_q4 %= ppr_chico
 
-    # Convertir pulsos a ángulo
-    posicion_q4 = (pulsos_q4 / ppr_chico) * 360.0
+        # Convertir pulsos a ángulo
+        posicion_q4 = (pulsos_q4 / ppr_chico) * 360.0
 
+# Configurar interrupción en el pin A_q4
 pi.callback(A_q4, pigpio.FALLING_EDGE, contar_q4)
 
 # Coeficientes del PID
