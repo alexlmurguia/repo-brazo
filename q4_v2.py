@@ -1,6 +1,7 @@
 import lgpio
 import time
 
+#buenas
 
 PWM_q4 = 27
 PWM_on = 0
