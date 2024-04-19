@@ -8,10 +8,10 @@ GPIO.setwarnings(False)
 PWM_q1_1 = 3
 PWM_q1_2 = 5
 PWM_q2_1 = 7
-PWM_q2_2 = 11
+PWM_q2_2 = 16 #regresar a 11, cambie a 16 para la prueba
 PWM_q3_1 = 13
 PWM_q3_2 = 15
-#PWM_q4 = 19
+PWM_q4 = 19
 #PWM_q5 = 21
 #PWM_q6 = 23
 PWM_on = 0
@@ -34,11 +34,11 @@ B_q5 = 24
 A_q6 = 22
 B_q6 = 18
 
-MOTOR_A_PIN_q4 = 16
-MOTOR_B_PIN_q4 = 12
+MOTOR_A_PIN_q4 = 11 #cambiar a 16, cambie a 11 para la prueba
+MOTOR_B_PIN_q4 = 12 
 MOTOR_A_PIN_q5 = 10
 MOTOR_B_PIN_q5 = 8
-MOTOR_A_PIN_q6 = 19
+MOTOR_A_PIN_q6 = 22
 MOTOR_B_PIN_q6 = 21
 
 val1 = 0
@@ -95,7 +95,7 @@ BC1_g, BC2_g, BC3_g = 0, 0, 0
 tiempoAnterior = 0
 
 # Configuración de los pines GPIO
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 
 # Configuración de la comunicación serial
 #serial = serial.Serial('/dev/ttyAMA0', 115200)  # Puedes cambiar '/dev/ttyS0' según el puerto serial en tu Raspberry
@@ -108,29 +108,19 @@ GPIO.setup(PWM_q2_1, GPIO.OUT)  # Pin del PWM_q2_1
 GPIO.setup(PWM_q2_2, GPIO.OUT)  # Pin del PWM_q2_2
 GPIO.setup(PWM_q3_1, GPIO.OUT)  # Pin del PWM_q3_1
 GPIO.setup(PWM_q3_2, GPIO.OUT)  # Pin del PWM_q3_2
-#GPIO.setup(6, GPIO.OUT)  # Pin del PWM_q4
+GPIO.setup(PWM_q4, GPIO.OUT)  # Pin del PWM_q4
 #GPIO.setup(7, GPIO.OUT)  # Pin del PWM_q5
 #GPIO.setup(8, GPIO.OUT)  # Pin del PWM_q6
 
 # Configuración de los pines como entradas
-pins = [29, 31, 33, 35, 40, 38, 36, 32, 26, 24, 22, 18]
+pins = [A_q1, B_q1, A_q2, B_q2, A_q3, B_q3, A_q4, B_q4, A_q5, B_q5, A_q6, B_q6]
 for pin in pins:
-    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(pin, GPIO.IN)
 
 # Configuración de los pines como salidas para los motores
-motor_pins = [16, 12, 10, 8, 19, 21]
+motor_pins = [MOTOR_A_PIN_q4, MOTOR_B_PIN_q4, MOTOR_A_PIN_q5, MOTOR_B_PIN_q5, MOTOR_A_PIN_q6, MOTOR_B_PIN_q6] #cambie el 16 por 11
 for pin in motor_pins:
     GPIO.setup(pin, GPIO.OUT)
-
-# Crear la interrupción de flancos negativos en q1
-# (Necesitarás configurar esta parte específicamente en tu entorno de Raspberry Pi con la biblioteca RPi.GPIO)
-# Ejemplo de cómo podría ser en Raspberry Pi:
-GPIO.add_event_detect(A_q1, GPIO.FALLING, callback=contar_q1)
-GPIO.add_event_detect(A_q2, GPIO.FALLING, callback=contar_q2)
-GPIO.add_event_detect(A_q3, GPIO.FALLING, callback=contar_q3)
-GPIO.add_event_detect(A_q4, GPIO.FALLING, callback=contar_q4)
-GPIO.add_event_detect(A_q5, GPIO.FALLING, callback=contar_q5)
-GPIO.add_event_detect(A_q6, GPIO.FALLING, callback=contar_q6)
 
 # Coeficientes de ecuación de diferencias de PID
 BC1_q4 = Kc_q4 * (1 + (T / Taui_q4) + (Taud_q4 / T))
@@ -217,7 +207,7 @@ def contar_q3():
     # Convertir la cantidad de pulsos en un ángulo en el rango de 0° a 360°
     posicion_q3 = map(pulsos_q3, 0, ppr_grande, 0, 360)
 
-def contar_q4():
+def contar_q4(channel):
 
     global pulsos_q4, posicion_q4
     # Verificar en qué sentido gira el motor y agregar pulsos
@@ -288,6 +278,18 @@ def contar_q6():
 
     # Convertir la cantidad de pulsos en un ángulo en el rango de 0° a 360°
     posicion_q6 = map(pulsos_q6, 0, ppr_chico, 0, 360)
+
+
+# Crear la interrupción de flancos negativos en q1
+# (Necesitarás configurar esta parte específicamente en tu entorno de Raspberry Pi con la biblioteca RPi.GPIO)
+# Ejemplo de cómo podría ser en Raspberry Pi:
+GPIO.add_event_detect(A_q1, GPIO.FALLING, callback=contar_q1)
+GPIO.add_event_detect(A_q2, GPIO.FALLING, callback=contar_q2)
+GPIO.add_event_detect(A_q3, GPIO.FALLING, callback=contar_q3)
+GPIO.add_event_detect(A_q4, GPIO.FALLING, callback=lambda channel: contar_q4())
+GPIO.add_event_detect(A_q5, GPIO.FALLING, callback=contar_q5)
+GPIO.add_event_detect(A_q6, GPIO.FALLING, callback=contar_q6)
+
 
 def PID_q1():
     global E_q1, Mk, Mk1_q1, E1_q1, E2_q1
@@ -469,7 +471,7 @@ def PID_q4():
             Mk = limit_Mk
         if Mk < 0:
             Mk = 0
-        pulse_width = map(Mk, 0, limit_Mk, 40, 255)
+        pulse_width = 40 + (Mk * (255 - 40) / limit_Mk)
         GPIO.output(PWM_q4, pulse_width)
 
     elif E_q4 < 0:
@@ -487,7 +489,7 @@ def PID_q4():
             Mk = limit_Mk
         if Mk < 0:
             Mk = 0
-        pulse_width = map(Mk, 0, limit_Mk, 40, 255)
+        pulse_width = 40 + (Mk * (255 - 40) / limit_Mk)
         GPIO.output(PWM_q4, pulse_width)
 
     else:

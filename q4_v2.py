@@ -2,8 +2,6 @@ import lgpio
 import time
 
 
-GPIO.setwarnings(False)
-
 PWM_q4 = 27
 PWM_on = 0
 PWM_off = 0
@@ -56,15 +54,15 @@ BC1_g, BC2_g, BC3_g = 0, 0, 0
 tiempoAnterior = 0
 
 # Configuración de los pines GPIO
-GPIO.setmode(GPIO.BCM)
+lg = lgpio.gpiochip_open(0)
+lgpio.gpio_claim_input(lg, A_q4)
+lgpio.gpio_claim_input(lg, B_q4)
+lgpio.gpio_claim_output(lg, MOTOR_A_PIN_q4)
+lgpio.gpio_claim_output(lg, MOTOR_B_PIN_q4)
+lgpio.gpio_claim_output(lg, PWM_q4)
 
 GPIO.setup(PWM_q4, GPIO.OUT)  # Pin del PWM_q4
 
-GPIO.setup(A_q4, GPIO.IN)
-GPIO.setup(B_q4, GPIO.IN)
-
-GPIO.setup(MOTOR_A_PIN_q4, GPIO.OUT)
-GPIO.setup(MOTOR_B_PIN_q4, GPIO.OUT)
 
 BC1_q4 = Kc_q4 * (1 + (T / Taui_q4) + (Taud_q4 / T))
 BC2_q4 = Kc_q4 * (-1 - (2 * Taud_q4 / T))
@@ -75,7 +73,7 @@ BC2_g = Kc_g * (-1 - (2 * Taud_g / T))
 BC3_g = Kc_g * Taud_g / T
 
 
-def contar_q4(channel):
+def contar_q4(gpio, level, tick):
     print("contar")
     global pulsos_q4, posicion_q4
     # Verificar en qué sentido gira el motor y agregar pulsos
@@ -99,7 +97,13 @@ def contar_q4(channel):
     # Convertir la cantidad de pulsos en un ángulo en el rango de 0° a 360°
     posicion_q4 = int((pulsos_q4 - 0) * (360 - 0) / (ppr_chico-0) + 0)
    
-GPIO.add_event_detect(A_q4, GPIO.RISING, callback=lambda channel: contar_q4(1))
+cb1= lgpio.callback(lg, A_q4, lgpio.EITHER_EDGE, contar_q4)
+cb2= lgpio.callback(lg, B_q4, lgpio.EITHER_EDGE, contar_q4)
+PWM_FREC = 1000
+PWM_RANGE = 100
+
+pwm = lgpio_open(lg, PWM_PIN, PWM_FREQ)
+lgpio.pwm_set_range(pwm, PWM_RANGE)
 
 def PID_q4():
     global E_q4, Mk, Mk1_q4, E1_q4, E2_q4
@@ -110,28 +114,31 @@ def PID_q4():
     if E_q4 > 0:
         if (360 - E_q4) <= E_q4:
             E_q4 = 360 - E_q4
-            GPIO.output(MOTOR_A_PIN_q4, GPIO.HIGH)
-            GPIO.output(MOTOR_B_PIN_q4, GPIO.LOW)
+            
+            lgpio.gpio_write(lg, MOTOR_A_PIN_q4, 1)
+            lgpio.gpio_write(lg, MOTOR_B_PIN_q4, 0)
+            
         else:
-            GPIO.output(MOTOR_A_PIN_q4, GPIO.LOW)
-            GPIO.output(MOTOR_B_PIN_q4, GPIO.HIGH)
-
-        Mk = Mk1_q4 + BC1_q4 * E_q4 + BC2_q4 * E1_q4 + BC3_q4 * E2_q4
+        
+            lgpio.gpio_write(lg, MOTOR_A_PIN_q4, 0)
+            lgpio.gpio_write(lg, MOTOR_B_PIN_q4, 1)
+            Mk = Mk1_q4 + BC1_q4 * E_q4 + BC2_q4 * E1_q4 + BC3_q4 * E2_q4
         if Mk > limit_Mk:
             Mk = limit_Mk
         if Mk < 0:
             Mk = 0
         pulse_width = int((Mk-0)*(255-40)/(limit_Mk - 0) + 40)
-        GPIO.output(PWM_q4, pulse_width)
-
+        lgpio.tx_pwm(lg,PWM_q4, PWM_FREC, pulse_width)
+        
+        
     elif E_q4 < 0:
         if (360 + E_q4) <= abs(E_q4):
             E_q4 = abs(360 + E_q4)
-            GPIO.output(MOTOR_A_PIN_q4, GPIO.LOW)
-            GPIO.output(MOTOR_B_PIN_q4, GPIO.HIGH)
+            lgpio.gpio_write(lg, MOTOR_A_PIN_q4, 0)
+            lgpio.gpio_write(lg, MOTOR_B_PIN_q4, 1)
         else:
-            GPIO.output(MOTOR_A_PIN_q4, GPIO.HIGH)
-            GPIO.output(MOTOR_B_PIN_q4, GPIO.LOW)
+            lgpio.gpio_write(lg, MOTOR_A_PIN_q4, 1)
+            lgpio.gpio_write(lg, MOTOR_B_PIN_q4, 0)
             E_q4 = abs(E_q4)
 
         Mk = Mk1_q4 + BC1_q4 * E_q4 + BC2_q4 * E1_q4 + BC3_q4 * E2_q4
@@ -140,14 +147,15 @@ def PID_q4():
         if Mk < 0:
             Mk = 0
         pulse_width = int((Mk-0)*(255-40)/(limit_Mk - 0) + 40)        
-        GPIO.output(PWM_q4, pulse_width)
+        lgpio.tx_pwm(lg,PWM_q4, PWM_FREC, pulse_width)
 
     else:
         Mk = 0
-        GPIO.output(MOTOR_A_PIN_q4, GPIO.LOW)
-        GPIO.output(MOTOR_B_PIN_q4, GPIO.LOW)
+        lgpio.gpio_write(lg, MOTOR_A_PIN_q4, 0)
+        lgpio.gpio_write(lg, MOTOR_B_PIN_q4, 0)
         pulse_width = int((Mk-0)*(255-40)/(limit_Mk - 0) + 40)
-        GPIO.output(PWM_q4, pulse_width )
+        lgpio.tx_pwm(lg,PWM_q4, PWM_FREC, pulse_width)
+
 
     Mk1_q4 = Mk
     E2_q4 = E1_q4
