@@ -19,7 +19,14 @@ Taud_q4 = 0.4
 T = 0.01
 ppr_chico = 2441
 limit_Mk = 100
-
+# Variables del estado del motor y posición
+pulsos_q4 = 0
+posicion_q4 = 0.0
+E_q4 = 0.0
+Mk1_q4 = 0.0
+E1_q4 = 0.0
+E2_q4 = 0.0
+q4 = 90  # Posición deseada en grados
 # Inicializar la librería pigpio
 pi = pigpio.pi()
 
