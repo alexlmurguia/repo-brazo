@@ -51,6 +51,8 @@ class decoder_class:
         else:  # gpio == self.gpioB
             b_state = level
             a_state = self.pi.read(self.gpioA)
+        
+        print(f"GPIO: {gpio}, Level: {level}, A state: {a_state}, B state: {b_state}")
 
         if (gpio == self.gpioA and a_state != b_state) or (gpio == self.gpioB and a_state == b_state):
             self.pulsos_q4 += 1
