@@ -28,6 +28,7 @@ class decoder_class:
         self.cbA = self.pi.callback(gpioA, pigpio.EITHER_EDGE, self._pulse)
         self.cbB = self.pi.callback(gpioB, pigpio.EITHER_EDGE, self._pulse)
 
+    """
     def _pulse(self, gpio, level, tick):
         if gpio == self.gpioA:
             if level == 0:  # Check for falling edge
@@ -41,6 +42,20 @@ class decoder_class:
                     self.pulsos_q4 += 1
                 else:
                     self.pulsos_q4 -= 1
+    """
+
+    def _pulse(self, gpio, level, tick):
+        if gpio == self.gpioA:
+            a_state = level
+            b_state = self.pi.read(self.gpioB)
+        else:  # gpio == self.gpioB
+            b_state = level
+            a_state = self.pi.read(self.gpioA)
+
+        if (gpio == self.gpioA and a_state != b_state) or (gpio == self.gpioB and a_state == b_state):
+            self.pulsos_q4 += 1
+        else:
+            self.pulsos_q4 -= 1
 
     def get_pulses(self):
         return self.pulsos_q4
