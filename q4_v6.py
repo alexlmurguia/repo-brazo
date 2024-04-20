@@ -43,7 +43,7 @@ class decoder_class:
                 else:
                     self.pulsos_q4 -= 1
     """
-
+    """
     def _pulse(self, gpio, level, tick):
         if gpio == self.gpioA:
             a_state = level
@@ -58,6 +58,23 @@ class decoder_class:
             self.pulsos_q4 += 1
         else:
             self.pulsos_q4 -= 1
+    """
+    def _pulse(self, gpio, level, tick):
+        if gpio == self.gpioA:
+            self.levA = level
+        else:
+            self.levB = level
+
+        if gpio != self.lastGpio: # debounce
+            self.lastGpio = gpio
+
+            if   gpio == self.gpioA and level == 1:
+                if self.levB == 1:
+                    self.callback(1)
+            elif gpio == self.gpioB and level == 1:
+                if self.levA == 1:
+                    self.callback(-1)
+
 
     def get_pulses(self):
         return self.pulsos_q4
