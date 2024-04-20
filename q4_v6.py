@@ -64,8 +64,10 @@ def move_motor(direction, duration):
     # Set PWM duty cycle for speed
     pi.set_PWM_dutycycle(PWM_q4, 128)  # 50% Duty cycle
 
-    # Move for specified duration
-    time.sleep(duration)
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        print(f'Current pulses: {decoder.get_pulses()}')
+        time.sleep(0.1)  # Print every 100ms
 
     # Stop the motor
     pi.set_PWM_dutycycle(PWM_q4, 0)
