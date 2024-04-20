@@ -25,8 +25,8 @@ class decoder_class:
         self.pi.set_pull_up_down(gpioA, pigpio.PUD_UP)
         self.pi.set_pull_up_down(gpioB, pigpio.PUD_UP)
 
-        self.cbA = self.pi.callback(gpioA, pigpio.FALLING_EDGE, self._pulse)
-        self.cbB = self.pi.callback(gpioB, pigpio.FALLING_EDGE, self._pulse)
+        self.cbA = self.pi.callback(gpioA, pigpio.EITHER_EDGE, self._pulse)
+        self.cbB = self.pi.callback(gpioB, pigpio.EITHER_EDGE, self._pulse)
 
     def _pulse(self, gpio, level, tick):
         if gpio == self.gpioA:
