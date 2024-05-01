@@ -58,7 +58,7 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                 if button_pressed_value=="4":
                     if buttoncamera_pressed_value=="1":
                         print('Message received:',f"{buttoncamera_pressed_value}\n")
-                        send_video(server_ip,video_port)
+                        #send_video(server_ip,video_port)
                     if buttoncamera_pressed_value=="2":
                         print('Message received:',f"{buttoncamera_pressed_value}\n")
                 
