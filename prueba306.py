@@ -7,6 +7,8 @@ import base64
 from multiprocessing import Process, Value
 import signal
 import sys
+import funciones as f  
+
 
 def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate, running):
     try:
@@ -41,6 +43,9 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                         command_socket.sendto(response_msg.encode('utf-8'), address)
                     if buttonmodalidadbrazo_pressed_value=="2":
                     #FALTA AGREGAR LA LIBRERIA DE CINEMATICA INVERSA
+                        ths = f.angulosInversa(q1, q2, q3, q4, q5, q6)
+                        ths = [int(th) for th in ths]  # Ajusta ángulos
+                        q1, q2, q3, q4, q5, q6 = ths
                     #YA MANDA COO SI FUERA DIRECTA
                         #arduino_brazo_serial.write(f"{buttonmodalidadbrazo_pressed_value},{q1},{q2},{q3},{q4},{q5},{q6}\n".encode('utf-8'))
                         response_msg = "Updated successfully"
