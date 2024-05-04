@@ -116,6 +116,16 @@ def send_command_mastil_to_rasp(mastil):
     time.sleep(0.1)
     response = arduino_mov_serial.readline().decode('utf-8', errors='replace').strip()
 
+# Función para enviar comandos al Raspberry Pi Pico
+def send_command_mastil_to_rasp(mastil):
+    try:
+        with serial.Serial('/dev/rasp_mastil', 115200, timeout=1) as rasp_mastil_serial:  # Asegúrate de que el dispositivo es correcto
+            command = f"{mastil}\n"
+            rasp_mastil_serial.write(command.encode('utf-8'))
+            print('Mastil command sent:', command)
+    except Exception as e:
+        print(f"Error sending mastil command: {e}")
+
 if __name__ == '__main__':
     server_ip = '192.168.0.100'
     command_port = 2222
