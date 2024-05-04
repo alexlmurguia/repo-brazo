@@ -5,7 +5,7 @@ from multiprocessing import Process
 
 def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate):
     try:
-        arduino_mov_serial = serial.Serial(arduino_mov_port, arduino_mov_baud_rate, timeout=1)
+        
         command_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         command_socket.bind((server_ip, command_port))
         print('Command server is up and listening...')
@@ -18,27 +18,29 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                 print('Message received:', message)
                 print('Client address:', address[0])
                 
+                # Aquí iría el procesamiento de tu mensaje
+                # Por simplicidad omito la lógica detallada
                 button_pressed_value, buttonmodalidadbrazo_pressed_value, buttongripper_pressed_value, velocidad, angulo, q1, q2, q3, q4, q5, q6, mastil, buttoncamera_pressed_value = message.split(',') 
                 print(button_pressed_value)
                 if button_pressed_value=="1":
-                    arduino_mov_serial.write(f"{velocidad},{angulo}\n".encode('utf-8'))
+                    send_command_mov_to_arduino(velocidad, angulo)
                     print('Message received:',f"{velocidad},{angulo}\n" )
                     response_msg = "Updated successfully"
                     command_socket.sendto(response_msg.encode('utf-8'), address)
                 if button_pressed_value=="2":
                     if buttonmodalidadbrazo_pressed_value=="1":
-                        #arduino_brazo_serial.write(f"{buttonmodalidadbrazo_pressed_value},{q1},{q2},{q3},{q4},{q5},{q6}\n".encode('utf-8'))
+                        send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value,q1,q2,q3,q4,q5,q6)
                         print('Message received:',f"{buttonmodalidadbrazo_pressed_value},{q1},{q2},{q3},{q4},{q5},{q6}\n")
                         response_msg = "Updated successfully"
                         command_socket.sendto(response_msg.encode('utf-8'), address)
                     if buttonmodalidadbrazo_pressed_value=="2":
                     #FALTA AGREGAR LA LIBRERIA DE CINEMATICA INVERSA
                     #YA MANDA COO SI FUERA DIRECTA
-                        #arduino_brazo_serial.write(f"{buttonmodalidadbrazo_pressed_value},{q1},{q2},{q3},{q4},{q5},{q6}\n".encode('utf-8'))
+                        send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value==1,q1,q2,q3,q4,q5,q6)
                         response_msg = "Updated successfully"
                         command_socket.sendto(response_msg.encode('utf-8'), address)
                     if buttonmodalidadbrazo_pressed_value=="3":
-                        #arduino_brazo_serial.write(f"{buttonmodalidadbrazo_pressed_value},{buttongripper_pressed_value}\n".encode('utf-8'))
+                        send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value==1,q1,q2,q3,q4,q5,q6)
                         print('Message received:',f"{buttonmodalidadbrazo_pressed_value},{buttongripper_pressed_value}\n")
                         response_msg = "Updated successfully"
                         command_socket.sendto(response_msg.encode('utf-8'), address)
@@ -94,12 +96,31 @@ def send_video(host_ip, port):
                 cv2.destroyAllWindows()
                 break
 
+def send_command_mov_to_arduino(velocidad, angulo):
+    command = f"{velocidad},{angulo}"
+    print('Message to send:', command)
+    arduino_mov_serial.write(command.encode('utf-8'))
+    time.sleep(0.1)
+    response = arduino_mov_serial.readline().decode('utf-8', errors='replace').strip()
+
+def send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value,q1,q2,q3,q4,q5,q6):
+    command = f"{buttonmodalidadbrazo_pressed_value},{q1},{q2},{q3},{q4},{q5},{q6}"
+    print('Message to send:', command)
+    arduino_brazo_serial.write(command.encode('utf-8'))
+    time.sleep(0.1)
+    response = arduino_brazo_serial.readline().decode('utf-8', errors='replace').strip()
+    
+
 if __name__ == '__main__':
     server_ip = '192.168.0.100'
     command_port = 2222
     video_port = 9999
     arduino_mov_port = '/dev/arduino_mov'
+    arduino_brazo_port = '/dev/arduino_brazo'
     arduino_mov_baud_rate = 9600
+    arduino_brazo_baud_rate = 115200
+    arduino_mov_serial = serial.Serial(arduino_mov_port, arduino_mov_baud_rate, timeout=1)
+    arduino_brazo_serial = serial.Serial(arduino_brazo_port, arduino_brazo_baud_rate, timeout=1)
 
     # Crear y empezar los procesos
     process1 = Process(target=process_commands, args=(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate))
