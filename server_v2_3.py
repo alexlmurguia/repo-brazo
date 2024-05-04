@@ -109,13 +109,6 @@ def send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value,q1,q2,q3,q4
     time.sleep(0.1)
     response = arduino_brazo_serial.readline().decode('utf-8', errors='replace').strip()
     
-def send_command_mastil_to_rasp(mastil):
-    command = f"{mastil}"
-    print('Message to send:', command)
-    arduino_mov_serial.write(command.encode('utf-8'))
-    time.sleep(0.1)
-    response = arduino_mov_serial.readline().decode('utf-8', errors='replace').strip()
-
 # Función para enviar comandos al Raspberry Pi Pico
 def send_command_mastil_to_rasp(mastil):
     try:
