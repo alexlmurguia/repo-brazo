@@ -18,12 +18,10 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                 print('Message received:', message)
                 print('Client address:', address[0])
                 
-                # Aquí iría el procesamiento de tu mensaje
-                # Por simplicidad omito la lógica detallada
                 button_pressed_value, buttonmodalidadbrazo_pressed_value, buttongripper_pressed_value, velocidad, angulo, q1, q2, q3, q4, q5, q6, mastil, buttoncamera_pressed_value = message.split(',') 
                 print(button_pressed_value)
                 if button_pressed_value=="1":
-                    #arduino_mov_serial.write(f"{velocidad},{angulo}\n".encode('utf-8'))
+                    arduino_mov_serial.write(f"{velocidad},{angulo}\n".encode('utf-8'))
                     print('Message received:',f"{velocidad},{angulo}\n" )
                     response_msg = "Updated successfully"
                     command_socket.sendto(response_msg.encode('utf-8'), address)
@@ -100,7 +98,7 @@ if __name__ == '__main__':
     server_ip = '192.168.0.100'
     command_port = 2222
     video_port = 9999
-    arduino_mov_port = '/dev/ttyACM0'
+    arduino_mov_port = '/dev/arduino_mov'
     arduino_mov_baud_rate = 9600
 
     # Crear y empezar los procesos

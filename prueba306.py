@@ -58,10 +58,12 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                 if button_pressed_value=="4":
                     if buttoncamera_pressed_value=="1":
                         print('Message received:',f"{buttoncamera_pressed_value}\n")
-                        send_video(server_ip,video_port)
+                        running.value = 2
+			            #send_video(server_ip,video_port)
                     if buttoncamera_pressed_value=="2":
                         print('Message received:',f"{buttoncamera_pressed_value}\n")
-                
+                        running.value = 1
+
                 response_msg = "Updated successfully"
                 #command_socket.sendto(response_msg.encode('utf-8'), address)
             except Exception as e:
@@ -81,15 +83,17 @@ def send_video(host_ip, port, running):
     vid = cv2.VideoCapture(0)
     
     try:
-        while running.value:
-            _, frame = vid.read()
-            frame = imutils.resize(frame, width=400)
-            encoded, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-            message = base64.b64encode(buffer)
-            video_socket.sendto(message, (host_ip, port))
-            cv2.imshow('TRANSMITTING VIDEO', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        while running.value > 0:
+            if running.value == 2:
+                _, frame = vid.read()
+                frame = imutils.resize(frame, width=400)
+                encoded, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                message = base64.b64encode(buffer)
+                #print(message)
+                video_socket.sendto(message, (host_ip, port))
+                cv2.imshow('TRANSMITTING VIDEO', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
     except Exception as e:
         print("Error sending video:", e)
     finally:
@@ -108,7 +112,7 @@ if __name__ == '__main__':
     server_ip = '192.168.0.100'
     command_port = 2222
     video_port = 9999
-    arduino_mov_port = '/dev/ttyACM0'
+    arduino_mov_port = '/dev/arduino_mov'
     arduino_mov_baud_rate = 9600
     running = Value('i', 1)
 
