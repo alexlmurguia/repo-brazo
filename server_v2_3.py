@@ -3,7 +3,7 @@ import numpy as np
 import time, base64
 from multiprocessing import Process
 
-def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate):
+def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate,arduino_brazo_port, arduino_brazo_baud_rate, rasp_mastil_port, rasp_mastil_baud_rate):
     try:
         
         command_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -45,8 +45,7 @@ def process_commands(server_ip, command_port, arduino_mov_port, arduino_mov_baud
                         response_msg = "Updated successfully"
                         command_socket.sendto(response_msg.encode('utf-8'), address)
                 if button_pressed_value=="3":
-                    #arduino_mov_serial.write(f"{mastil}\n".encode('utf-8'))
-                    response_msg = "Updated successfully"
+                    send_command_mastil_to_rasp(mastil)
                     print('Message received:',f"{mastil}\n")
                     command_socket.sendto(response_msg.encode('utf-8'), address)
                 if button_pressed_value=="4":
@@ -110,6 +109,12 @@ def send_command_brazo_to_arduino(buttonmodalidadbrazo_pressed_value,q1,q2,q3,q4
     time.sleep(0.1)
     response = arduino_brazo_serial.readline().decode('utf-8', errors='replace').strip()
     
+def send_command_mastil_to_rasp(mastil):
+    command = f"{mastil}"
+    print('Message to send:', command)
+    arduino_mov_serial.write(command.encode('utf-8'))
+    time.sleep(0.1)
+    response = arduino_mov_serial.readline().decode('utf-8', errors='replace').strip()
 
 if __name__ == '__main__':
     server_ip = '192.168.0.100'
@@ -121,9 +126,12 @@ if __name__ == '__main__':
     arduino_brazo_baud_rate = 115200
     arduino_mov_serial = serial.Serial(arduino_mov_port, arduino_mov_baud_rate, timeout=1)
     arduino_brazo_serial = serial.Serial(arduino_brazo_port, arduino_brazo_baud_rate, timeout=1)
+    rasp_mastil_port = '/dev/rasp_mastil'
+    rasp_mastil_baud_rate = 115200
+    rasp_mastil_serial = serial.Serial(rasp_mastil_port, rasp_mastil_baud_rate, timeout=1)
 
     # Crear y empezar los procesos
-    process1 = Process(target=process_commands, args=(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate))
+    process1 = Process(target=process_commands, args=(server_ip, command_port, arduino_mov_port, arduino_mov_baud_rate, arduino_brazo_port, arduino_brazo_baud_rate, rasp_mastil_port, rasp_mastil_baud_rate))
     process2 = Process(target=send_video, args=('0.0.0.0', video_port))
     process1.start()
     process2.start()
