@@ -83,17 +83,15 @@ def send_video(host_ip, port, running):
     vid = cv2.VideoCapture(0)
     
     try:
-        while running.value > 0:
-            if running.value == 2:
-                _, frame = vid.read()
-                frame = imutils.resize(frame, width=400)
-                encoded, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                message = base64.b64encode(buffer)
-                #print(message)
-                video_socket.sendto(message, (host_ip, port))
-                cv2.imshow('TRANSMITTING VIDEO', frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+        while running.value:
+            _, frame = vid.read()
+            frame = imutils.resize(frame, width=400)
+            encoded, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            message = base64.b64encode(buffer)
+            video_socket.sendto(message, (host_ip, port))
+            cv2.imshow('TRANSMITTING VIDEO', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
     except Exception as e:
         print("Error sending video:", e)
     finally:
@@ -127,3 +125,6 @@ if __name__ == '__main__':
 
     process1.join()
     process2.join()
+
+
+    # Comandos para hacer kill de procesos (de ser necesario)

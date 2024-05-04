@@ -52,101 +52,55 @@ def send_data(data_socket, serverAddress, queue):
     # Solicitar el inicio de la transmisión de vídeo
     #video_socket.sendto(b'start', (host_ip, video_port))
 
-
-"""
-# Función para recibir y mostrar video
-def receive_video(queue):
-    global fps, st, frames_to_count, cnt
-
-    while True:
-        start_message = queue.get()  # Esperar a recibir 'start' desde la cola
-        if start_message == 'start':
-            video_socket.sendto(b'start', (host_ip, video_port))
-            while True:
-                packet, _ = video_socket.recvfrom(BUFF_SIZE)
-                data = base64.b64decode(packet)
-                npdata = np.frombuffer(data, dtype=np.uint8)
-                frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-                frame = cv2.putText(frame, 'FPS: '+str(fps), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                cv2.imshow("RECEIVING VIDEO", frame)
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
-                    video_socket.close()
-                    break
-                if cnt == frames_to_count:
-                    try:
-                        fps = round(frames_to_count / (time.time() - st))
-                        st = time.time()
-                        cnt = 0
-                    except:
-                        pass
-                cnt += 1
-"""
-
-# Función para recibir y mostrar video
-def receive_video2():
-    global fps, st, frames_to_count, cnt
+def receive_video():
+    global buttoncamara_pressed_value
      # Construir el mensaje a enviar
     message = f"{button_pressed_value},{buttonmodalidadbrazo_pressed_value},{buttongripper_pressed_value},{buttoncamara_pressed_value}"
     print("Sending:", message)
-    while True:
+    while buttoncamara_pressed_value == 1:
         try:
             packet, _ = video_socket.recvfrom(BUFF_SIZE)
             data = base64.b64decode(packet)
             npdata = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
             if frame is not None:
-                frame = cv2.putText(frame, 'FPS: '+str(fps), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = Image.fromarray(frame)
-                frame = ImageTk.PhotoImage(frame)
-                video_label.config(image=frame)
-                video_label.image = frame
-                if cnt == frames_to_count:
-                    fps = round(frames_to_count / (time.time() - st), 2)
-                    st = time.time()
-                    cnt = 0
-                cnt += 1
+                show_frame(frame)
             else:
                 display_black_frame()
-        except socket.timeout:
+        except:
             display_black_frame()
-
-# Función para recibir y mostrar el video
-def receive_video():
-    print("hola2")
-     # Construir el mensaje a enviar
-    message = f"{button_pressed_value},{buttonmodalidadbrazo_pressed_value},{buttongripper_pressed_value},{buttoncamara_pressed_value}"
-    print("Sending:", message)
-    #global buttoncamara_pressed_value
-    while buttoncamara_pressed_value == 1:
-        packet, _ = video_socket.recvfrom(BUFF_SIZE)
-        data = base64.b64decode(packet, ' /')
-        npdata = np.frombuffer(data, dtype=np.uint8)
-        frame = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = Image.fromarray(frame)
-        frame = ImageTk.PhotoImage(image=frame)
-        video_label.config(image=frame)
-        video_label.image = frame
     else:
         display_black_frame()
 
+def show_frame(frame):
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = Image.fromarray(frame)
+    frame = ImageTk.PhotoImage(frame)
+    video_label.config(image=frame)
+    video_label.image = frame
 
-# Función para mostrar un cuadro negro cuando no se recibe video
 def display_black_frame():
-    black_frame = np.zeros((480, 520, 3), dtype=np.uint8)
+    black_frame = np.zeros((300,400,3), dtype=np.uint8)
     black_frame = Image.fromarray(black_frame)
     black_frame = ImageTk.PhotoImage(black_frame)
     video_label.config(image=black_frame)
     video_label.image = black_frame
 
-
-# Función para iniciar la transmisión de video
 def start_video():
-    # Lanza el hilo de video
-    print("hola")
-    Thread(target=receive_video).start()
+    global video_thread
+    if video_thread is None or not video_thread.is_alive():
+        print("start video funct")
+        video_thread = Thread(target=receive_video)
+        video_thread.start()
+    print("Video streaming started.")
+
+def stop_video():
+    global buttoncamara_pressed_value
+    buttoncamara_pressed_value = 2
+    if video_thread is not None:
+        # Esto no detendrá el hilo inmediatamente, pero permitirá que el bucle termine.
+        print("Video streaming stopped.")
+        
 
 def on_mov_button(data_socket, serverAddress, queue):
     global button_pressed_value
@@ -204,6 +158,7 @@ def on_off_button(data_socket, serverAddress, queue):
     button_pressed_value = 4
     buttoncamara_pressed_value=2
     send_data(data_socket, serverAddress, queue)  
+    stop_video()
 
 def on_reposobrazo_button():
     # Define los valores de reposo para cada entrada
@@ -321,7 +276,7 @@ if __name__ == '__main__':
     root.title("Rover NAVT QAVAH")
 
     # Frame con fondo negro que cubre toda la columna 0 y 1
-    frame_black = tk.Frame(root, bg="black")
+    frame_black = tk.Frame(root, bg="black", borderwidth=1, relief="solid")
     frame_black.grid(rowspan=999, column=0, sticky="nsew", columnspan=2)  # Usamos sticky="nsew" para que se expanda en todas las direcciones
 
     # Carga y muestra la imagen PNG
@@ -340,9 +295,12 @@ if __name__ == '__main__':
     on_button = tk.Button(root, text="On", bg="black",fg="green",command=lambda: on_on_button(data_socket, serverAddress, queue))
     on_button.grid(row=4, column=0, padx=5, pady=5)
     # Vincular el botón ON para iniciar la visualización del video
-    #on_button.config(command=lambda: start_video())
-    video_label = tk.Label(root)
+    #on_button.config(command=lambda: start_video()
+
+    video_label = tk.Label(root, bg="black")
     video_label.grid(row=11, column=0, padx=5, pady=5, columnspan=2, rowspan=5)
+    
+    
     
     off_button = tk.Button(root, text="Off", bg="black",fg="red", command=lambda: on_off_button(data_socket, serverAddress, queue))
     off_button.grid(row=4, column=1, padx=5, pady=5)

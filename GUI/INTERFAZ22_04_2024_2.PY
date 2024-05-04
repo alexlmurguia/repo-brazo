@@ -104,6 +104,7 @@ def on_mastil_button(data_socket, serverAddress, queue):
     global button_pressed_value
     button_pressed_value = 3
     send_data(data_socket, serverAddress, queue)  
+    queue.put('start')
 
 def on_on_button(data_socket, serverAddress, queue):
     global button_pressed_value
